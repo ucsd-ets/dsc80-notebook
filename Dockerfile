@@ -1,24 +1,53 @@
-# 1) choose base container
-# generally use the most recent tag
+ARG BASE_CONTAINER=jupyter/datascience-notebook:7a0c7325e470
+ARG DATAHUB_CONTAINER=ucsdets/datahub-base-notebook:2019.4.9
 
-# data science notebook
-# https://hub.docker.com/repository/docker/ucsdets/datascience-notebook/tags
-ARG BASE_CONTAINER=ucsdets/datascience-notebook:2019.4.7
-
-# scipy/machine learning (tensorflow)
-# https://hub.docker.com/repository/docker/ucsdets/scipy-ml-notebook/tags
-#ARG BASE_CONTAINER=ucsdets/scipy-ml-notebook:2019.4.6
+FROM $DATAHUB_CONTAINER as datahub
 
 FROM $BASE_CONTAINER
 
-LABEL maintainer="UC San Diego ITS/ETS <ets-consult@ucsd.edu>"
-
-# 2) change to root to install packages
+MAINTAINER UC San Diego ITS/ETS-EdTech-Ecosystems <acms-compinf@ucsd.edu>
 USER root
 
-# 3) install packages
-#RUN pip install networkx rpy2==3.1.0 python-igraph powerlaw numpy scipy python-louvain
-RUN conda install -c anaconda python=3.7
+RUN pip install datascience
 
-# 4) change back to notebook user
-USER $NB_UID
+USER root
+
+COPY --from=datahub /usr/share/datahub/scripts/* /usr/share/datahub/scripts/
+RUN /usr/share/datahub/scripts/install-all.sh
+
+# Install OKpy for DSC courses
+RUN pip install okpy
+RUN pip install dpkt
+
+RUN conda install --quiet --yes \
+            bokeh \
+            cloudpickle \
+            cython \
+            dill \
+            h5py \
+            hdf5 \
+            nose \
+            numba \
+            numexpr \
+            patsy \
+            scikit-image \
+            scikit-learn \
+            seaborn \
+            sqlalchemy \
+            sympy
+
+# Pregenerate matplotlib cache
+RUN python -c 'import matplotlib.pyplot'
+
+#RUN conda remove --quiet --yes --force qt pyqt
+RUN conda clean -tipsy
+
+WORKDIR /home
+RUN userdel jovyan && rm -rf /home/jovyan
+ENV SHELL=/bin/bash
+
+COPY start-systemuser.sh /usr/local/bin/start-systemuser.sh
+
+RUN  bash -c 'find /opt/julia -type f -a -name "*.ji" -a \! -perm /005 | xargs chmod og+rX'
+
+CMD ["sh" "/usr/local/bin/start-systemuser.sh"]
