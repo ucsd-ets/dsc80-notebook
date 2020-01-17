@@ -17,7 +17,8 @@ LABEL maintainer="UC San Diego ITS/ETS <ets-consult@ucsd.edu>"
 USER root
 
 # 3) install packages
-RUN pip install networkx rpy2==3.1.0 python-igraph powerlaw numpy scipy python-louvain
+#RUN pip install networkx rpy2==3.1.0 python-igraph powerlaw numpy scipy python-louvain
+RUN conda install -c anaconda python=3.7
 
 # 4) change back to notebook user
 USER $NB_UID
